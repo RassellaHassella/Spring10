@@ -22,10 +22,10 @@ public class UserDAOImpl implements UserDAO {
     }
 
 
-    public User findByEmail(String username) {
+    public User findByEmail(String email) {
         String jpql = "SELECT u FROM User u where u.email=:param1";
         List<User> user = entityManager.createQuery(jpql, User.class)
-                .setParameter("param1", username).getResultList();
+                .setParameter("param1", email).getResultList();
         if (user.isEmpty()) {
             return null;
         }
@@ -34,13 +34,8 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
-    public List<User> show(Long id) {
-
-       User user = entityManager.find(User.class, id);
-        if (user == null) {
-            return null;
-        }
-        return List.of(user);
+    public User show(Long id) {
+        return entityManager.find(User.class, id);
     }
 
     @Override

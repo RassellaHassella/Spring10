@@ -26,7 +26,8 @@ public class InitDB {
         roleRepository.save(roleAdmin);
         roleRepository.save(roleUser);
 
-        User user = new User("rkr.ru@mail.ru", "Ruslan", "Kutepov", 29, "1234");
+        User user = new User("Ruslan", "Kutepov", 29, "rkr.ru@mail.ru");
+        user.setPassword("1234");
         user.addRoles(roleAdmin);
         user.addRoles(roleUser);
         userService.save(user);
