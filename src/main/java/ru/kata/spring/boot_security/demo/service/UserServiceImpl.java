@@ -1,83 +1,101 @@
 package ru.kata.spring.boot_security.demo.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.kata.spring.boot_security.demo.dao.RoleRepository;
-import ru.kata.spring.boot_security.demo.dao.UserDAO;
+import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.models.User;
+import ru.kata.spring.boot_security.demo.repositories.RoleRepository;
+import ru.kata.spring.boot_security.demo.repositories.UserRepository;
 
-
+import javax.persistence.EntityNotFoundException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 
 @Service
-public class UserServiceImpl implements UserService {
-    private UserDAO userDAO;
-    private RoleRepository roleRepository;
+public class UserServiceImpl implements UserService, UserDetailsService {
+    private final UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
-
+    private final RoleRepository roleRepository;
 
     @Autowired
-    public UserServiceImpl(UserDAO userDAO, RoleRepository roleRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
-        this.userDAO = userDAO;
-        this.roleRepository = roleRepository;
+    public UserServiceImpl(UserRepository userRepository, @Lazy BCryptPasswordEncoder bCryptPasswordEncoder, RoleRepository roleRepository) {
+        this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-
-    }
-
-    @Override
-    public List<User> index() {
-
-        return userDAO.index();
+        this.roleRepository = roleRepository;
     }
 
 
     @Override
-    public User show(Long id) {
-        return userDAO.show(id);
-    }
-
     @Transactional
-    @Override
-    public boolean save(User user) {
-        User users = userDAO.findByEmail(user.getEmail());
-        if (users != null) {
-            return false;
-        }
-        user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-        userDAO.save(user);
-        return true;
-    }
-
-    @Transactional
-    @Override
-    public void update(User updatedUser) {
-        if (updatedUser.getPassword().isEmpty()) {
-            updatedUser.setPassword(show(updatedUser.getId()).getPassword());
+    public void add(User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent()){
+            System.out.println("Пользователь с таким email е существует!");
         } else {
-            updatedUser.setPassword(bCryptPasswordEncoder.encode(updatedUser.getPassword()));
+            createRolesIfNotExist();
+            user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+            userRepository.save(user);
         }
-        userDAO.update(updatedUser);
     }
 
-    @Transactional
     @Override
+    public void createRolesIfNotExist() {
+        if (roleRepository.findByRole("ROLE_USER").isEmpty()) {
+            roleRepository.save(new Role(1L, "ROLE_USER"));
+        }
+        if (roleRepository.findByRole("ADMIN").isEmpty()) {
+            roleRepository.save(new Role(2L, "ROLE_ADMIN"));
+        }
+    }
+
+    @Override
+    public List<User> usersList() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id) {
-        userDAO.delete(id);
+        userRepository.deleteById(id);
+    }
+
+    @Override
+    public User getUser(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException
+                ("Пользователь с id " + id + " не найден"));
+    }
+
+    @Override
+    public User findByEmail(String email) {
+        if (userRepository.findByEmail(email).isEmpty()) {
+            throw new EntityNotFoundException("Пользователь не найден");
+        } else {
+            return userRepository.findByEmail(email).get();
+        }
+    }
+
+
+    @Override
+    public void update(User user) {
+
+        userRepository.save(user);
+
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userDAO.findByEmail(email);
-
-        if (user == null)
-            throw new UsernameNotFoundException("User not found!");
-
-        return user;
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isEmpty()){
+            throw new UsernameNotFoundException("Пользователя с таким email не существует: " + email);
+        }
+        return user.get();
     }
 }

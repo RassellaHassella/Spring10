@@ -6,10 +6,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Size;
+import java.util.*;
 
 
 @Entity
@@ -18,31 +18,51 @@ public class User implements UserDetails{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "name")
+    @Column(name = "firstName")
+    @NotEmpty(message = "Name shouldn't be empty")
+    @Size(min = 2, max = 30, message = "Name should be between 2 and 30 charscters")
     private String firstName;
-    @Column(name = "lastname")
+    @Column(name = "lastName")
+    @NotEmpty(message = "Name shouldn't be empty")
+    @Size(min = 2, max = 30, message = "Name should be between 2 and 30 charscters")
     private String lastName;
     @Column(name = "age")
     private int age;
 
     @Column(name = "email", unique = true, nullable = false)
+    @NotEmpty(message = "Email shouldn't be empty")
+    @Email(message = "Email should be valid")
     private String email;
 
     @Column(name = "password")
+//    @NotEmpty(message = "Password shouldn't be empty")
+//    @Size(min = 2, max = 30, message = "Password should be between 2 and 30 charscters")
     private String password;
-    @ManyToMany(fetch = FetchType.EAGER)
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "users_roles",
-            joinColumns = { @JoinColumn(name = "users_id") },
-            inverseJoinColumns = { @JoinColumn(name = "roles_id") })
-    private Set<Role> roles = new HashSet<>();
+            joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
+    private List<Role> roles;
 
     public User() {}
 
-    public User(String firstName, String lastName, int age, String email) {
+    public User(String firstName, String lastName, int age, String email, String password, List<Role> roles) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;
         this.email = email;
+        this.password = password;
+        this.roles = roles;
+
+    }
+    public User(String firstName, String lastName, int age, String email, String password) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.age = age;
+        this.email = email;
+        this.password = password;
+
     }
 
     public Long getId() {
@@ -89,16 +109,16 @@ public class User implements UserDetails{
         this.password = password;
     }
 
-    public Set<Role> getRoles() {
+    public List<Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(Set<Role> roles) {
+    public void setRoles(List<Role> roles) {
         this.roles = roles;
     }
 
     public void addRoles(Role role) {
-        roles.add(role);
+        this.roles.add(role);
     }
 
     @Override
@@ -113,7 +133,7 @@ public class User implements UserDetails{
 
     @Override
     public String getUsername() {
-        return firstName;
+        return this.email;
     }
 
     @Override

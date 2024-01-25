@@ -5,12 +5,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import ru.kata.spring.boot_security.demo.dao.RoleRepository;
 import ru.kata.spring.boot_security.demo.models.User;
+import ru.kata.spring.boot_security.demo.repositories.RoleRepository;
 import ru.kata.spring.boot_security.demo.service.UserService;
-
-
-import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -25,14 +22,13 @@ public class AdminController {
     @GetMapping()
     public String index(Model model, @AuthenticationPrincipal User user){
         model.addAttribute("user", user);
-        model.addAttribute("users", userService.index());
+        model.addAttribute("users", userService.usersList());
         model.addAttribute("allRoles", roleRepository.findAll());
         return "admin";
     }
     @PostMapping("/users")
-    public String save(User user, String rawPassword){
-        user.setPassword(rawPassword);
-        userService.save(user);
+    public String save(User user){
+        userService.add(user);
         return "redirect:/admin";
     }
 
@@ -42,10 +38,7 @@ public class AdminController {
         return "redirect:/admin";
     }
     @PostMapping("/edit/{id}")
-    public String update(User user, String rawPassword){
-        if (rawPassword.length()>0){
-            user.setPassword(rawPassword);
-        }
+    public String update(User user){
         userService.update(user);
         return "redirect:/admin";
     }
